@@ -1,0 +1,33 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "API服务",
+  "main": "app.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=development DBTYPE=mysql DBNAME=application DBUSER=root DBPASS=root DBHOST=localhost DBPORT=3306 nodemon app.js",
+    "dev": "cross-env NODE_ENV=development DBTYPE=mysql DBNAME=application DBUSER=root DBPASS=root DBHOST=localhost DBPORT=3306 nodemon app.js"
+  },
+  "author": "t736974@163.com",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "koa": "^2.11.0",
+    "koa-body": "^4.1.1",
+    "koa-logger": "^3.2.1",
+    "koa-router": "^8.0.8",
+    "koa2-cors": "^2.0.6",
+    "moment": "^2.24.0",
+    "mysql2": "^2.1.0",
+    "node-xlsx": "^0.21.0",
+    "sequelize": "^5.21.5",
+    "utf8": "^3.0.0"
+  },
+  "devDependencies": {
+    "ajv": "^6.12.2",
+    "cross-env": "^7.0.0",
+    "mysql": "^2.18.1",
+    "npx": "^10.2.2",
+    "prettier": "^2.0.5",
+    "sequelize-auto": "^0.4.29"
+  }
+}
