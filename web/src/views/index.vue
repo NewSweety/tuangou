@@ -6,6 +6,7 @@
       :show-close="false"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
+      :modal-append-to-body="false"
       custom-class="login_wrap"
     >
       <el-input type="text" v-model="token"></el-input>
@@ -222,6 +223,7 @@ export default {
       const res = await Axios.get(`/sp?gid=${this.gid}`);
       if (res.data.responseCode == 0) {
         this.searchList = res.data.data;
+        document.title = res.data.data[0].name;
       }
     },
     async changeOrder(fh, sp) {
