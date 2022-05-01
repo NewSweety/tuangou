@@ -8,9 +8,11 @@ let config = {
     DBNAME: 'application',
     DBUSER: 'root',
     DBPASS: 'uh5p@5VE!BKxgk@h%am73!',
-    DBHOST: '100.110.194.12',
-    // DBHOST: 'localhost',
+    DBHOST: '100.99.128.84',
     DBPORT: '3360'
+    // DBPASS: 'root',
+    // DBHOST: '10.0.0.184',
+    // DBPORT: '3306'
   },
   responseCode: {
     success: 0,
@@ -18,8 +20,7 @@ let config = {
     notFoundError: 3,
     formatError: 4,
     passwordError: 5
-  },
-  token: 'admin'
+  }
 };
 
 exports = module.exports = config;

@@ -8,15 +8,15 @@ const vSp = require('../db').vsp;
 const dbOrder = require('../db').order;
 const vOrder = require('../db').vorder;
 const sequelize = require('../db').sequelizeIns;
-const Op = require('sequelize').Op;
 const config = require('../configs');
 const util = require('../utils');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const {
   success,
-  formatError,
   internalError,
-  notFoundError
 } = config.responseCode;
 
 /** 团购 */
@@ -65,13 +65,15 @@ class Groupon {
             // 电话索引
             const telidx = header.findIndex(item => item == '联系电话');
             // 代收
-            // const dsidx = header.findIndex(item => item == '可否代收本楼栋货物（仅本团购）');
+            const dsidx = header.findIndex(item => item == '可否代收本楼栋货物（仅本团购）');
             // 封控
-            // const fkidx = header.findIndex(item => item == '是否封控楼栋');
+            const fkidx = header.findIndex(item => item == '是否封控楼栋');
             // 楼栋索引
             const lidx = header.findIndex(item => item == '楼号');
             // 房号索引
             const fidx = header.findIndex(item => item == '房号');
+            // 备注索引
+            const bzidx = header.findIndex(item => item == '团员备注');
 
             for(let i=0;i<body.length;++i) {
                 const data = body[i];
@@ -84,11 +86,11 @@ class Groupon {
                 if(!ld) {
                     ld = await dbLd.create({
                         name: data[lidx],
-                        // fk: data[fkidx] == '是' ? 2 : 1
+                        fk: data[fkidx] == '是' ? 2 : 1
                     })
                 }else {
                     // 更新封控信息
-                    // ld.fk = data[fkidx] == '是' ? 2 : 1;
+                    ld.fk = data[fkidx] == '是' ? 2 : 1;
                     await ld.save();
                 }
                 // 判断房号是否添加
@@ -123,19 +125,176 @@ class Groupon {
                     gth: data[gthidx],
                     count: data[slidx],
                     xdr: data[xdridx],
-                    // ds: data[dsidx],
+                    ds: data[dsidx],
                     tel: data[telidx],
                     zt: 2,
+                    bz: data[bzidx] ? (data[bzidx].split(':'))[1] : '',
                     createtime: moment(),
                     updatetime: moment()
                 })
             }
 
-            util.setHttpResponse(ctx, 200, success, 'order create success');
+            util.setHttpResponse(ctx, 200, success, 'order create success', {
+                data: {
+                    gid: groupon.id
+                }
+            });
 
         } catch (err) {
             console.log(err);
             util.setHttpResponse(ctx, 500, internalError, 'server internal error');
+        }
+    }
+
+    /**
+     * 解析excel，直传文件版本
+     */
+    static async processExcelByFile(ctx) {
+        const inFile = ctx.request.files.file;
+        const sheet = '顾客购买表';
+        try {
+            // 读取excel
+            const workSheetsFromFile = xlsx.parse(inFile.path);
+            //   拆出需要的sheet
+            const consumerData = workSheetsFromFile.find(
+            (item) => item.name == sheet
+            );
+            const data = consumerData.data;
+
+            // 添加批次名
+            let groupon = await dbGroupon.create({
+                name: inFile.name,
+                createtime: moment()
+            })
+
+            const header = data[0];
+            const body = data.slice(1);
+            // 下单人
+            const xdridx = header.findIndex(item => item == '下单人');
+            // 跟团号
+            const gthidx = header.findIndex(item => item == '跟团号');
+            // 商品
+            const spidx = header.findIndex(item => item == '商品');
+            // 数量索引
+            const slidx = header.findIndex(item => item == '数量');
+            // 电话索引
+            const telidx = header.findIndex(item => item == '联系电话');
+            // 代收
+            const dsidx = header.findIndex(item => item == '可否代收本楼栋货物（仅本团购）');
+            // 封控
+            const fkidx = header.findIndex(item => item == '是否封控楼栋');
+            // 楼栋索引
+            const lidx = header.findIndex(item => item == '楼号');
+            // 房号索引
+            const fidx = header.findIndex(item => item == '房号');
+            // 备注索引
+            const bzidx = header.findIndex(item => item == '团员备注');
+            // 判断格式是否正确
+            if(xdridx == -1) {
+                throw new Error('未查询到下单人');
+            }
+            if(gthidx == -1) {
+                throw new Error('未查询到跟团号');
+            }
+            if(spidx == -1) {
+                throw new Error('未查询到商品');
+            }
+            if(slidx == -1) {
+                throw new Error('未查询到数量');
+            }
+            if(telidx == -1) {
+                throw new Error('未查询到联系电话');
+            }
+            if(lidx == -1) {
+                throw new Error('未查询到楼号');
+            }
+            if(fidx == -1) {
+                throw new Error('未查询到房号');
+            }
+            if(fidx == -1) {
+                throw new Error('未查询到房号');
+            }
+            if(bzidx == -1) {
+                throw new Error('未查询到备注');
+            }
+
+            const map = new Map();
+            for(let i=0;i<body.length;++i) {
+                const data = body[i];
+
+                // 判断楼栋是否添加
+                let ld = await dbLd.findOne({
+                    where: {
+                        name: data[lidx]
+                    }
+                });
+                if(!ld) {
+                    ld = await dbLd.create({
+                        name: data[lidx],
+                        fk: fkidx != -1 ? (data[fkidx] == '是' ? 2 : 1) : 1
+                    })
+                }else {
+                    // 更新封控信息
+                    ld.fk = fkidx != -1 ? (data[fkidx] == '是' ? 2 : 1) : 1;
+                    await ld.save();
+                }
+                // 判断房号是否添加
+                let fh = await dbFh.findOne({
+                    where: {
+                        name: data[fidx]
+                    }
+                });
+                if(!fh) {
+                    fh = await dbFh.create({
+                        name: data[fidx]
+                    })
+                }
+                // 判断商品是否添加
+                let spid = map.get(data[spidx]);
+                if(!spid) {
+                    let sp = await dbSp.create({
+                        name: data[spidx],
+                        gid: groupon.id
+                    });
+                    map.set(data[spidx], sp.id);
+                    spid = sp.id;
+                }
+                // 添加订单
+                await dbOrder.create({
+                    gid: groupon.id,
+                    lid: ld.id,
+                    fid: fh.id,
+                    spid: spid,
+                    gth: data[gthidx],
+                    count: data[slidx],
+                    xdr: data[xdridx],
+                    ds: dsidx ? data[dsidx] : '',
+                    tel: data[telidx],
+                    zt: 2,
+                    bz: data[bzidx],
+                    createtime: moment(),
+                    updatetime: moment()
+                })
+            }
+
+
+            const uuid = crypto
+                .createHash('md5')
+                .update(groupon.id + '', 'utf8')
+                .digest('hex');
+
+            groupon.uuid = uuid;
+            await groupon.save();
+
+            util.setHttpResponse(ctx, 200, success, 'order create success', {
+                data: {
+                    uuid: encodeURIComponent(uuid)
+                }
+            });
+
+        } catch (err) {
+            console.log(err);
+            util.setHttpResponse(ctx, 500, internalError, err.message || 'server internal error');
         }
     }
 
@@ -230,6 +389,7 @@ class Groupon {
                 name: data.sp_name,
                 count: data.count,
                 zt: data.zt,
+                bz: data.bz
             });
         }
 
@@ -280,17 +440,42 @@ class Groupon {
     }
 
     /**
-     * 验证token
+     * 根据uuid查询批次
      * @param {*} ctx 
      */
-    static async validateToken(ctx) {
-        const token = ctx.query.token;
-        console.log(token, config.token)
-        if(token == config.token) {
-            util.setHttpResponse(ctx, 200, success, 'validate token success');
+    static async getGrouponByUUid(ctx) {
+        const uuid = ctx.query.uuid;
+        const groupon = await dbGroupon.findOne({
+            where: {
+                uuid
+            }
+        })
+        if(groupon) {
+            util.setHttpResponse(ctx, 200, success, 'query groupon success', {
+                data: groupon
+            });
         }else {
-            util.setHttpResponse(ctx, 500, internalError, 'validate token fail');
+            util.setHttpResponse(ctx, 500, internalError, 'groupon error');
         }
+    }
+
+    /**
+     * 下载模板
+     * @param {*} ctx 
+     */
+    static async getTemplate(ctx) {
+        const buffer = fs.createReadStream(
+            path.resolve(__dirname, '../utils/assets/template.xlsx')
+        );
+        console.log(buffer);
+        ctx.response.status = 200;
+        ctx.body = buffer;
+        ctx.set(
+            'content-Disposition','attachment;filename=template.xlsx'
+        );
+        ctx.set(
+            'content-type','application/vnd.openxmlformats'
+        );
     }
 }
 

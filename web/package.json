@@ -14,6 +14,7 @@
     "crypto-js": "^4.0.0",
     "element-ui": "^2.13.1",
     "eslint-plugin-html": "^6.0.2",
+    "file-saver": "^2.0.5",
     "js-base64": "^2.5.2",
     "js-md5": "^0.7.3",
     "js-sha256": "^0.9.0",
@@ -23,6 +24,7 @@
     "qs": "^6.9.4",
     "reconnecting-websocket": "^4.4.0",
     "script-loader": "^0.7.2",
+    "v-viewer": "^1.6.4",
     "vue": "^2.6.11",
     "vue-router": "^3.1.5",
     "vuex": "^3.3.0"

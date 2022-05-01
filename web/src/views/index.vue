@@ -1,7 +1,7 @@
 <template>
-  <div style="position: absolute; width: 100%; height: 100%; top: 0; left: 0">
+  <div class="wrapper">
     <el-dialog
-      title="请输入登录token"
+      title="请输入用户名"
       :visible.sync="isNLogin"
       :show-close="false"
       :close-on-press-escape="false"
@@ -11,17 +11,16 @@
       <el-input type="text" v-model="token"></el-input>
       <el-button type="primary" @click="toLogin">确定登录</el-button>
     </el-dialog>
-    <div class="map_btn" @click="getMap">
-      {{ isMap ? '关闭地图' : '查看地图' }}
-    </div>
-    <div class="map" v-if="isMap">
-      <img src="@/utils/IMG_4921.jpg" alt="" />
-    </div>
-    <!-- 左侧楼栋群 -->
+    <div class="map_btn" @click="getMap">查看地图</div>
+    <div class="map_btn intro_btn" @click="getIntro()">查看说明</div>
+    <!-- 上部分 -->
     <div class="left">
       <div class="filters">
         <p
-          :class="{ success: search.includes(item.sp_id) }"
+          :class="{
+            selected: search.includes(item.sp_id),
+            success: item.count_completed == item.count,
+          }"
           @click="goSearch(item.sp_id)"
           :key="index"
           v-for="(item, index) of searchList"
@@ -31,7 +30,7 @@
           }}）
         </p>
       </div>
-      <div id="ldq">
+      <div id="ldq" v-if="ldList.length">
         <p
           :class="{
             success: ldIsSccess(item),
@@ -47,8 +46,11 @@
           }})
         </p>
       </div>
+      <div id="ldq" v-else>
+        <p class="tip">勾选上方商品进行查询</p>
+      </div>
     </div>
-    <!-- 右侧信息显示和操作按钮 -->
+    <!-- 下部分 -->
     <div class="lh" v-if="currentLd">
       楼号：<span>{{ currentLd.name }}号楼</span>
     </div>
@@ -79,6 +81,7 @@
             >
               <p class="sp_name"><span>商品名：</span>{{ sp.name }}</p>
               <p class="sp_sl"><span>数量：</span>{{ sp.count }}</p>
+              <p class="sp_name" v-if="sp.bz"><span>备注：</span>{{ sp.bz }}</p>
               <p
                 :class="{ sp_zt: true, success: sp.zt == 1, fail: sp.zt == 2 }"
               >
@@ -101,15 +104,34 @@
 <script>
 import Axios from '@/utils/axios';
 import { copy } from 'mini-toolkit';
-// import moment from 'moment';
+import 'viewerjs/dist/viewer.css';
+import VueViewer from 'v-viewer';
+import img_intro1 from '@/utils/assets/intro1.jpg';
+import img_intro2 from '@/utils/assets/intro2.jpg';
+import img_map from '@/utils/assets/map.jpg';
+import Vue from 'vue';
+
+Vue.use(VueViewer);
 
 export default {
   data() {
     return {
+      uuid: null,
+      introList: [
+        {
+          url: img_intro1,
+          title: 'intro1',
+        },
+        {
+          url: img_intro2,
+          title: 'intro2',
+        },
+      ],
+      mapList: [img_map],
+      curMap: 0,
       gid: null,
       isNLogin: false,
       token: '',
-      isMap: false,
       loading: false,
       flag: false,
       search: [],
@@ -120,7 +142,7 @@ export default {
   },
   methods: {
     getCompletedByLd(data) {
-      const fhq = data.fhq;
+      const { fhq } = data;
       let total = 0;
       for (let i = 0; i < fhq.length; ++i) {
         for (let j = 0; j < fhq[i].sp.length; ++j) {
@@ -130,7 +152,7 @@ export default {
       return total;
     },
     getTotalByLd(data) {
-      const fhq = data.fhq;
+      const { fhq } = data;
       let total = 0;
       for (let i = 0; i < fhq.length; ++i) {
         for (let j = 0; j < fhq[i].sp.length; ++j) {
@@ -140,7 +162,19 @@ export default {
       return total;
     },
     getMap() {
-      this.isMap = !this.isMap;
+      this.$viewerApi({
+        images: this.mapList,
+      });
+    },
+    getIntro() {
+      this.$viewerApi({
+        options: {
+          toolbar: true,
+          url: 'url',
+          initialViewIndex: 1,
+        },
+        images: this.introList,
+      });
     },
     ldIsSccess(ld) {
       return ld.fhq.every((item) => {
@@ -150,7 +184,6 @@ export default {
           } else {
             return true;
           }
-          // return this.search.includes(itm.sp_id) && itm.zt == 1;
         });
       });
     },
@@ -201,7 +234,7 @@ export default {
           const zt = sp.zt == 1 ? 2 : 1;
           await Axios.post('/order', {
             oid: sp.oid,
-            zt: zt,
+            zt,
             czr: localStorage.getItem('token'),
           });
           this.getLdList();
@@ -217,26 +250,46 @@ export default {
       }, 30000);
     },
     async toLogin() {
-      if (this.token.indexOf('admin') == -1) {
-        this.$message.error({
-          message: 'token无效',
-        });
-      } else {
-        this.$message.success('登录成功');
-        this.isNLogin = false;
-        localStorage.setItem('token', this.token);
-      }
+      this.$message.success('登录成功');
+      this.isNLogin = false;
+      localStorage.setItem('token', this.token);
     },
     copy(text) {
       copy(text);
       this.$message.success('拷贝成功');
     },
+    // safariHacks() {
+    //   let windowsVH = window.innerHeight / 100;
+    //   document
+    //     .querySelector('.wrapper')
+    //     .style.setProperty('--vh', windowsVH + 'px');
+    //   window.addEventListener('resize', function () {
+    //     document
+    //       .querySelector('.wrapper')
+    //       .style.setProperty('--vh', windowsVH + 'px');
+    //   });
+    // },
   },
-  mounted() {
-    this.gid = this.$route.query.gid;
-    if (!this.gid) {
+  async mounted() {
+    // this.safariHacks();
+    this.uuid = this.$route.query.uuid;
+    if (!this.uuid) {
       this.$message.error('链接不正确');
       return;
+    } else {
+      try {
+        await Axios.get(`/groupon_uuid?uuid=${this.uuid}`)
+          .then((res) => {
+            this.gid = res.data.data.id;
+          })
+          .catch((err) => {
+            throw new Error();
+          });
+      } catch (err) {
+        console.log(err);
+        this.$message.error('链接不正确');
+        return;
+      }
     }
     this.getLdList();
     this.getSp();
@@ -316,18 +369,33 @@ input {
 
 /************************* */
 
+.wrapper {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  // height: calc(var(--vh, 1vh) * 100);
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
 .map_btn {
   position: fixed;
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   top: 50%;
   right: 15px;
   background-color: orange;
   border-radius: 50%;
   text-align: center;
-  line-height: 50px;
-  z-index: 999;
+  line-height: 60px;
+  z-index: 997;
   font-size: 12px;
+}
+
+.map_btn.intro_btn {
+  z-index: 999;
+  top: 60%;
 }
 
 .map {
@@ -336,13 +404,26 @@ input {
   height: 100%;
   top: 0;
   left: 0;
-  z-index: 998;
+  z-index: 996;
   overflow: hidden;
-  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
-.map img {
+.intro {
+  position: absolute;
   width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  z-index: 998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 .left {
@@ -366,7 +447,7 @@ input {
 
 .left .filters p {
   width: 7em;
-  height: 30px;
+  min-height: 30px;
   line-height: 30px;
   text-align: center;
   flex: 0 0 33%;
@@ -376,10 +457,14 @@ input {
   font-size: 12px;
 }
 
-.left .filters p.success {
+.left .filters p.selected {
   background-color: #03a9f4;
   color: #000;
   font-weight: bold;
+}
+
+.left .filters p.success.selected {
+  background-color: #67c23a;
 }
 
 .left #ldq {
@@ -407,6 +492,17 @@ input {
   font-size: 12px;
   text-align: center;
   color: #fff;
+}
+
+.left #ldq p.tip {
+  background-color: unset;
+  font-size: 30px;
+  width: 80vw;
+  color: #999;
+  flex: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: -20px;
 }
 
 .left #ldq p.selected {

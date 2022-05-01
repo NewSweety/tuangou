@@ -12,6 +12,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
+    uuid: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
     createtime: {
       type: DataTypes.DATE,
       allowNull: true

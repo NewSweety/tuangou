@@ -68,6 +68,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
+    bz: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
     o_createtime: {
       type: DataTypes.DATE,
       allowNull: true

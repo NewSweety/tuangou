@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import index from '@/views/index.vue';
-import moment from 'moment';
+import importing from '@/views/importing.vue';
 
 Vue.use(VueRouter);
 
@@ -10,7 +10,13 @@ const routes = [
     path: '/',
     name: 'index',
     component: index,
-    meta: { title: '团购核销' }
+    meta: { title: '团购核销' },
+  },
+  {
+    path: '/importing',
+    name: 'importing',
+    component: importing,
+    meta: { title: '团购核销管理' },
   },
 ];
 

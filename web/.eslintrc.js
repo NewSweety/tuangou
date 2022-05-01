@@ -34,7 +34,6 @@ module.exports = {
     'prefer-templat': 0,
     'prefer-template': 0,
     'operator-assignment': 0,
-    'no-return-assign': 0,
     'no-sequences': 0,
     'vue/no-async-in-computed-properties': 1, // 计算属性应该是同步的。其中的异步操作可能无法按预期工作，并可能导致意外行为，这就是您应该避免它们的原因。如果您需要异步计算属性，可能需要考虑使用其他插件[vue-async-computed]
     'vue/no-side-effects-in-computed-properties': 1, // 在计算属性中引入副作用被认为是一种非常糟糕的做法。它使代码无法预测且难以理解。
